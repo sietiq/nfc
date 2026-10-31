@@ -3,227 +3,304 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ماسح البطاقات التلقائي بالذكاء الاصطناعي</title>
-    <!-- استيراد Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- استيراد حزمة Google Generative AI للويب -->
-    <script type="importmap">
-      {
-        "imports": {
-          "@google/genai": "https://esm.run/@google/genai"
-        }
-      }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>نظام بصمة الوجه والبيانات الذكي</title>
+    <!-- Tailwind CSS للتصميم المتجاوب -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- مكتبة Face-API.js للتعرف على بصمة الوجه -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
     <style>
-        body { font-family: 'Tajawal', sans-serif; }
+        body { font-family: system-ui, -apple-system, sans-serif; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-4 flex flex-col items-center justify-center">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
 
-    <div class="w-full max-w-md bg-slate-800 rounded-2xl shadow-2xl p-5 border border-slate-700">
-        <!-- العنوان -->
-        <div class="text-center mb-4">
-            <h1 class="text-xl font-bold text-blue-400">ماسح البطاقات التلقائي</h1>
-            <p id="instruction-text" class="text-xs text-yellow-400 mt-1 font-semibold">ثبت [وجه البطاقة الأمامي] داخل الإطار...</p>
+    <div class="w-full max-w-md bg-slate-800 rounded-2xl shadow-xl p-6 border border-slate-700">
+        
+        <!-- عنوان التطبيق -->
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-indigo-400">بصمة الوجه الرقمية</h1>
+            <p id="status-msg" class="text-xs text-amber-400 mt-1">جاري تحميل نماذج الذكاء الاصطناعي للوجه...</p>
         </div>
 
-        <!-- معاينة الكاميرا المباشرة -->
-        <div class="relative w-full h-56 bg-black rounded-xl overflow-hidden border-2 border-slate-600 mb-4 shadow-inner">
-            <video id="video" autoplay playsinline class="w-full h-full object-cover"></video>
-            <canvas id="canvas" class="hidden"></canvas>
+        <!-- أزرار التنقل بين التبويبات -->
+        <div class="flex bg-slate-900 p-1 rounded-xl mb-6 border border-slate-700">
+            <button onclick="switchTab('register')" id="btn-register" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white transition">تسجيل جديد</button>
+            <button onclick="switchTab('login')" id="btn-login" class="flex-1 py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition">تسجيل الدخول</button>
+        </div>
+
+        <!-- 1. قسم التسجيل (Register) -->
+        <div id="tab-register" class="space-y-4">
+            <!-- الكاميرا -->
+            <div class="relative rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center border border-slate-700">
+                <video id="reg-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+            </div>
             
-            <!-- إطار التوجيه -->
-            <div id="scan-frame" class="absolute inset-4 border-2 border-dashed border-yellow-400 rounded-lg pointer-events-none flex items-center justify-center text-xs text-yellow-200 bg-black/10 transition-all duration-300">
-                جاري الانتظار لالتقاط الصورة تلقائياً...
-            </div>
-        </div>
+            <button type="button" onclick="captureFaceDescriptor('reg')" id="btn-reg-face" disabled class="w-full bg-slate-700 opacity-50 text-slate-200 py-2 rounded-xl text-sm font-medium transition flex items-center justify-center gap-2">
+                👤 استخراج بصمة الوجه
+            </button>
+            <p id="reg-face-status" class="text-xs text-center text-slate-400 hidden">✅ تم استخراج بصمة الوجه بنجاح</p>
 
-        <!-- مؤشر الحالة -->
-        <div id="loading" class="hidden text-center py-2 text-cyan-400 text-xs animate-pulse mb-3 font-bold">
-            ✨ يتم تحليل الصورة بذكاء Gemini الاصطناعي...
-        </div>
-
-        <!-- حقول النتائج المستخرجة -->
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-700 space-y-2.5 mb-4">
-            <h3 class="text-xs font-bold text-slate-300 border-b border-slate-800 pb-1.5">البيانات المستخرجة:</h3>
+            <!-- الحقول -->
             <div>
-                <label class="block text-[10px] text-slate-400 mb-1">رقم البطاقة:</label>
-                <input type="text" id="card-number" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-1.5 text-xs text-emerald-400 font-mono" placeholder="رقم البطاقة...">
+                <label class="block text-xs text-slate-400 mb-1">الاسم الثلاثي واللقب</label>
+                <input type="text" id="reg-name" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" placeholder="مثال: أحمد محمد علي">
             </div>
-            <div class="grid grid-cols-2 gap-2">
+
+            <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-[10px] text-slate-400 mb-1">تاريخ الانتهاء:</label>
-                    <input type="text" id="card-expiry" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-1.5 text-xs text-emerald-400 font-mono" placeholder="MM/YY">
+                    <label class="block text-xs text-slate-400 mb-1">الجنس</label>
+                    <select id="reg-gender" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                        <option value="ذكر">ذكر</option>
+                        <option value="أنثى">أنثى</option>
+                    </select>
                 </div>
                 <div>
-                    <label class="block text-[10px] text-slate-400 mb-1">رمز الأمان (CVV):</label>
-                    <input type="text" id="card-cvv" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-1.5 text-xs text-emerald-400 font-mono" placeholder="CVV">
+                    <label class="block text-xs text-slate-400 mb-1">تاريخ الميلاد</label>
+                    <input type="date" id="reg-dob" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
                 </div>
+            </div>
+
+            <button onclick="registerUser()" id="btn-save" disabled class="w-full bg-slate-600 opacity-50 text-white font-semibold py-3 rounded-xl shadow-lg transition mt-2">
+                حفظ وإنشاء الرمز الفريد
+            </button>
+
+            <!-- نتيجة الرمز بعد التسجيل -->
+            <div id="result-box" class="hidden mt-4 p-4 bg-slate-900 border border-emerald-500/50 rounded-xl text-center">
+                <p class="text-xs text-slate-400">تم حفظ بصمة وجهك وبياناتك بنجاح! احتفظ برمزك السري:</p>
+                <div id="generated-code" class="text-xl font-mono font-bold text-emerald-400 tracking-widest my-2 select-all"></div>
+                <p class="text-[10px] text-amber-400">⚠️ احتفظ بهذا الرمز، ولن يظهر مرة أخرى!</p>
             </div>
         </div>
 
-        <!-- أزرار التحكم -->
-        <div class="flex gap-2">
-            <button onclick="resetScanner()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 px-3 rounded-xl transition text-xs">
-                إعادة ضبط
+        <!-- 2. قسم تسجيل الدخول (Login) -->
+        <div id="tab-login" class="space-y-4 hidden">
+            <!-- الكاميرا -->
+            <div class="relative rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center border border-slate-700">
+                <video id="login-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+            </div>
+            
+            <button type="button" onclick="captureFaceDescriptor('login')" id="btn-login-face" disabled class="w-full bg-slate-700 opacity-50 text-slate-200 py-2 rounded-xl text-sm font-medium transition flex items-center justify-center gap-2">
+                👤 مسح بصمة الوجه للتحقق
             </button>
-            <button onclick="saveCard()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-xl transition text-xs">
-                💾 حفظ البطاقة محلياً
+            <p id="login-face-status" class="text-xs text-center text-slate-400 hidden">✅ تم فحص بصمة الوجه بنجاح</p>
+
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">الرمز الفريد (10 خانات)</label>
+                <input type="text" id="login-code" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm uppercase font-mono tracking-wider focus:outline-none focus:border-indigo-500" placeholder="أدخل الرمز الخاص بك">
+            </div>
+
+            <button onclick="loginUser()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl shadow-lg transition mt-2">
+                تسجيل الدخول وعرض البيانات
             </button>
+
+            <!-- عرض البيانات عند نجاح الدخول -->
+            <div id="user-profile" class="hidden mt-4 p-4 bg-slate-900 border border-indigo-500/50 rounded-xl space-y-2">
+                <h3 class="text-sm font-bold text-indigo-400 border-b border-slate-800 pb-1">بيانات المستخدم المسجلة</h3>
+                <p class="text-xs text-slate-300"><strong>الاسم:</strong> <span id="profile-name"></span></p>
+                <p class="text-xs text-slate-300"><strong>الجنس:</strong> <span id="profile-gender"></span></p>
+                <p class="text-xs text-slate-300"><strong>تاريخ الميلاد:</strong> <span id="profile-dob"></span></p>
+            </div>
         </div>
+
     </div>
 
-    <script type="module">
-        import { GoogleGenAI } from "@google/genai";
+    <script>
+        // ضع هنا رابط Web App الخاص بـ Google Apps Script
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwKtT04cSafQYuobpY5QxmL-PFFcWQU337NWwLFSsjOCS2jJFR9_L_74QrLwLYiJmo/exec";
 
-        const ai = new GoogleGenAI({ apiKey: "AQ.Ab8RN6LiWhZ82I1A94VuOlNsLN7Yz1QL7GRBLVBH60n7gUnkOA" });
-        
-        let currentStep = 'front'; 
-        let videoStream = null;
-        let isProcessing = false;
-        let autoCaptureTimer = null;
+        let activeStream = null;
+        let regDescriptor = null;
+        let loginDescriptor = null;
 
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const instructionText = document.getElementById('instruction-text');
-        const scanFrame = document.getElementById('scan-frame');
-        const loadingEl = document.getElementById('loading');
-
-        async function initCamera() {
+        // تحميل نماذج الذكاء الاصطناعي للوجه من السيرفر العام
+        async function loadModels() {
+            const statusMsg = document.getElementById('status-msg');
             try {
-                videoStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
-                });
-                video.srcObject = videoStream;
+                // استخدام نماذج خفيفة ومناسبة للهواتف
+                await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+                await faceapi.nets.faceLandmarkTinyNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+                await faceapi.nets.faceRecognitionNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
                 
-                video.onloadedmetadata = () => {
-                    startAutoCaptureLoop();
-                };
-            } catch (err) {
-                console.error("خطأ في تشغيل الكاميرا: ", err);
-                alert("تعذر الوصول إلى كاميرا الجهاز. تأكد من إعطاء الصلاحيات.");
-            }
-        }
-
-        initCamera();
-
-        function startAutoCaptureLoop() {
-            autoCaptureTimer = setInterval(() => {
-                if (!isProcessing && currentStep !== 'done') {
-                    autoCaptureAndProcess();
-                }
-            }, 4000);
-        }
-
-        async function autoCaptureAndProcess() {
-            isProcessing = true;
-            loadingEl.classList.remove('hidden');
-            scanFrame.className = "absolute inset-4 border-2 border-solid border-cyan-400 rounded-lg pointer-events-none flex items-center justify-center text-xs text-cyan-200 bg-cyan-950/30 transition-all duration-300";
-
-            const maxWidth = 800;
-            const scale = maxWidth / video.videoWidth;
-            canvas.width = maxWidth;
-            canvas.height = (video.videoHeight || 600) * scale;
-
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const base64Image = canvas.toDataURL('image/jpeg', 0.85);
-            const pureBase64 = base64Image.split(',')[1];
-
-            try {
-                let prompt = "";
-                if (currentStep === 'front') {
-                    prompt = "Analyze this bank card front image. Extract the card number and the expiry date (MM/YY). Return ONLY a raw JSON object with keys: cardNumber and expiryDate. Example: {\"cardNumber\": \"1234567890123456\", \"expiryDate\": \"10/24\"}. Do not wrap in markdown.";
-                } else {
-                    prompt = "Analyze this bank card back image. Extract the CVV or CVC security code. Return ONLY a raw JSON object with key: cvv. Example: {\"cvv\": \"123\"}. Do not wrap in markdown.";
-                }
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: [
-                        { text: prompt },
-                        {
-                            inlineData: {
-                                mimeType: "image/jpeg",
-                                data: pureBase64
-                            }
-                        }
-                    ]
-                });
-
-                loadingEl.classList.add('hidden');
-                let rawText = response.text ? response.text.trim() : "";
-                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                statusMsg.innerText = "✨ النظام جاهز، يرجى السماح باستخدام الكاميرا";
+                statusMsg.className = "text-xs text-emerald-400 mt-1";
                 
-                const parsedData = JSON.parse(rawText);
+                // تفعيل أزرار الكاميرا
+                document.getElementById('btn-reg-face').disabled = false;
+                document.getElementById('btn-reg-face').classList.remove('opacity-50', 'bg-slate-700');
+                document.getElementById('btn-reg-face').classList.add('bg-indigo-600', 'hover:bg-indigo-500', 'text-white');
 
-                if (currentStep === 'front') {
-                    if (parsedData.cardNumber && parsedData.cardNumber.length >= 12) {
-                        document.getElementById('card-number').value = parsedData.cardNumber;
-                        if (parsedData.expiryDate) document.getElementById('card-expiry').value = parsedData.expiryDate;
+                document.getElementById('btn-login-face').disabled = false;
+                document.getElementById('btn-login-face').classList.remove('opacity-50', 'bg-slate-700');
+                document.getElementById('btn-login-face').classList.add('bg-indigo-600', 'hover:bg-indigo-500', 'text-white');
 
-                        currentStep = 'back';
-                        instructionText.textContent = "ممتاز! الآن اقلب البطاقة لالتقاط الظهر (CVV) تلقائياً...";
-                        instructionText.className = "text-xs text-purple-400 mt-1 font-semibold";
-                        scanFrame.className = "absolute inset-4 border-2 border-dashed border-purple-400 rounded-lg pointer-events-none flex items-center justify-center text-xs text-purple-200 bg-black/10 transition-all duration-300";
-                    }
-                } else {
-                    if (parsedData.cvv && parsedData.cvv.length >= 3) {
-                        document.getElementById('card-cvv').value = parsedData.cvv;
-                        currentStep = 'done';
-                        clearInterval(autoCaptureTimer);
-                        instructionText.textContent = "تمت قراءة البطاقة واكتمال البيانات بنجاح! 🎉";
-                        instructionText.className = "text-xs text-emerald-400 mt-1 font-semibold";
-                        scanFrame.className = "absolute inset-4 border-2 border-solid border-emerald-400 rounded-lg pointer-events-none flex items-center justify-center text-xs text-emerald-200 bg-emerald-950/30 transition-all duration-300";
-                    }
-                }
+                startCamera('reg');
             } catch (error) {
-                console.error(error);
-                loadingEl.classList.add('hidden');
-            }
-
-            if (currentStep !== 'done') {
-                isProcessing = false;
-                if (currentStep === 'front') {
-                    scanFrame.className = "absolute inset-4 border-2 border-dashed border-yellow-400 rounded-lg pointer-events-none flex items-center justify-center text-xs text-yellow-200 bg-black/10 transition-all duration-300";
-                } else {
-                    scanFrame.className = "absolute inset-4 border-2 border-dashed border-purple-400 rounded-lg pointer-events-none flex items-center justify-center text-xs text-purple-200 bg-black/10 transition-all duration-300";
-                }
+                statusMsg.innerText = "❌ تعذر تحميل نماذج الذكاء الاصطناعي. تحقق من الاتصال بالإنترنت.";
+                statusMsg.className = "text-xs text-rose-400 mt-1";
             }
         }
 
-        window.resetScanner = function() {
-            currentStep = 'front';
-            isProcessing = false;
-            document.getElementById('card-number').value = '';
-            document.getElementById('card-expiry').value = '';
-            document.getElementById('card-cvv').value = '';
-            instructionText.textContent = "ثبت [وجه البطاقة الأمامي] داخل الإطار...";
-            instructionText.className = "text-xs text-yellow-400 mt-1 font-semibold";
-            scanFrame.className = "absolute inset-4 border-2 border-dashed border-yellow-400 rounded-lg pointer-events-none flex items-center justify-center text-xs text-yellow-200 bg-black/10 transition-all duration-300";
-            
-            clearInterval(autoCaptureTimer);
-            startAutoCaptureLoop();
-        };
+        async function startCamera(type) {
+            stopCamera();
+            try {
+                const videoElement = document.getElementById(`${type}-video`);
+                activeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                videoElement.srcObject = activeStream;
+            } catch (err) {
+                alert("تعذر الوصول إلى الكاميرا. تأكد من تفعيل الأذونات.");
+            }
+        }
 
-        window.saveCard = function() {
-            const number = document.getElementById('card-number').value;
-            const expiry = document.getElementById('card-expiry').value;
-            const cvv = document.getElementById('card-cvv').value;
+        function stopCamera() {
+            if (activeStream) {
+                activeStream.getTracks().forEach(track => track.stop());
+                activeStream = null;
+            }
+        }
 
-            if (!number) {
-                alert('لا توجد بيانات كافية لحفظها!');
+        function switchTab(tab) {
+            stopCamera();
+            if(tab === 'register') {
+                document.getElementById('tab-register').classList.remove('hidden');
+                document.getElementById('tab-login').classList.add('hidden');
+                document.getElementById('btn-register').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white transition";
+                document.getElementById('btn-login').className = "flex-1 py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition";
+                startCamera('reg');
+            } else {
+                document.getElementById('tab-login').classList.remove('hidden');
+                document.getElementById('tab-register').classList.add('hidden');
+                document.getElementById('btn-login').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white transition";
+                document.getElementById('btn-register').className = "flex-1 py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition";
+                startCamera('login');
+            }
+        }
+
+        // استخراج بصمة الوجه الرقمية (Array of 128 numbers) عبر Face-API
+        async function captureFaceDescriptor(type) {
+            const video = document.getElementById(`${type}-video`);
+            const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks(true).withFaceDescriptor();
+
+            if (!detection) {
+                alert("⚠️ لم يتم رصد وجه بوضوح! تأكد من إضاءة وجهك ووجه الكاميرا مباشرة.");
                 return;
             }
 
-            const cardData = { number, expiry, cvv, date: new Date().toLocaleString() };
-            let savedCards = JSON.parse(localStorage.getItem('saved_bank_cards') || '[]');
-            savedCards.push(cardData);
-            localStorage.setItem('saved_bank_cards', JSON.stringify(savedCards));
+            const descriptorArray = Array.from(detection.descriptor); // بصمة الوجه الرقمية الدقيقة
 
-            alert('تم حفظ البطاقة بنجاح في متصفحك!');
-        };
+            if(type === 'reg') {
+                regDescriptor = descriptorArray;
+                document.getElementById('reg-face-status').classList.remove('hidden');
+                document.getElementById('btn-reg-face').innerText = "✅ تم استخراج البصمة بنجاح";
+                // تفعيل زر الحفظ النهائي
+                const saveBtn = document.getElementById('btn-save');
+                saveBtn.disabled = false;
+                saveBtn.classList.remove('opacity-50', 'bg-slate-600');
+                saveBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+            } else {
+                loginDescriptor = descriptorArray;
+                document.getElementById('login-face-status').classList.remove('hidden');
+                document.getElementById('btn-login-face').innerText = "✅ تم فحص بصمة الوجه";
+            }
+        }
+
+        function generateUniqueCode() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const nums = "0123456789";
+            let code = "";
+            for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            for (let i = 0; i < 5; i++) code += nums.charAt(Math.floor(Math.random() * nums.length));
+            return code;
+        }
+
+        async function registerUser() {
+            const name = document.getElementById('reg-name').value.trim();
+            const gender = document.getElementById('reg-gender').value;
+            const dob = document.getElementById('reg-dob').value;
+
+            if(!name || !dob || !regDescriptor) {
+                alert("الرجاء استخراج بصمة الوجه وإكمال جميع الحقول!");
+                return;
+            }
+
+            const uniqueCode = generateUniqueCode();
+            const payload = {
+                action: "register",
+                code: uniqueCode,
+                name: name,
+                gender: gender,
+                dob: dob,
+                faceDescriptor: JSON.stringify(regDescriptor) // تخزين بصمة الوجه كنص في الشيت
+            };
+
+            const btn = document.getElementById('btn-save');
+            btn.innerText = "جاري الحفظ في Google Sheets...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                
+                if(result.status === "success") {
+                    document.getElementById('generated-code').innerText = uniqueCode;
+                    document.getElementById('result-box').classList.remove('hidden');
+                } else {
+                    alert("حدث خطأ: " + result.message);
+                }
+            } catch(e) {
+                alert("فشل الاتصال بـ Google Sheets. تأكد من صحة الرابط البرمجي.");
+            } finally {
+                btn.innerText = "حفظ وإنشاء الرمز الفريد";
+                btn.disabled = false;
+            }
+        }
+
+        async function loginUser() {
+            const code = document.getElementById('login-code').value.trim().toUpperCase();
+            if(!code || !loginDescriptor) {
+                alert("الرجاء إدخال الرمز ومسح بصمة الوجه للتحقق!");
+                return;
+            }
+
+            const payload = {
+                action: "login",
+                code: code
+            };
+
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if(result.status === "success") {
+                    // مقارنة بصمة الوجه الحية مع البصمة المخزنة في الشيت
+                    const storedDescriptor = new Float32Array(JSON.parse(result.data.faceDescriptor));
+                    const distance = faceapi.euclideanDistance(loginDescriptor, storedDescriptor);
+                    
+                    // عتبة المطابقة (أقل من 0.6 يعني نفس الشخص)
+                    if (distance < 0.6) {
+                        document.getElementById('profile-name').innerText = result.data.name;
+                        document.getElementById('profile-gender').innerText = result.data.gender;
+                        document.getElementById('profile-dob').innerText = result.data.dob;
+                        document.getElementById('user-profile').classList.remove('hidden');
+                        alert("🎉 تمت مطابقة بصمة الوجه والرمز بنجاح!");
+                    } else {
+                        alert("❌ بصمة الوجه لا تتطابق مع الرمز المدخل!");
+                    }
+                } else {
+                    alert("فشل تسجيل الدخول: " + result.message);
+                }
+            } catch(e) {
+                alert("حدث خطأ في الاتصال أو مطابقة البيانات.");
+            }
+        }
+
+        // بدء تحميل النماذج عند فتح الصفحة
+        window.onload = loadModels;
     </script>
 </body>
 </html>
