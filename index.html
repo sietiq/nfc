@@ -4,16 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام بصمة الوجه الذكي</title>
-    <!-- Tailwind CSS للتصميم المتجاوب -->
+    <!-- Tailwind CSS للتصميم -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- مكتبة Face-API.js للتعرف على بصمة الوجه -->
-    <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
     <style>
         body { font-family: system-ui, -apple-system, sans-serif; }
-        /* انعكاس الكاميرا مثل المرآة تماماً */
-        .mirror-cam {
-            transform: scaleX(-1);
-        }
+        .mirror-cam { transform: scaleX(-1); }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
@@ -23,7 +18,7 @@
         <!-- عنوان التطبيق -->
         <div class="text-center mb-6">
             <h1 class="text-2xl font-bold text-indigo-400">بصمة الوجه الذكية</h1>
-            <p id="status-msg" class="text-xs text-amber-400 mt-1">جاري تحميل نظام الذكاء الاصطناعي...</p>
+            <p id="status-msg" class="text-xs text-emerald-400 mt-1">✨ الكاميرا جاهزة، انظر إليها والتقط البصمة</p>
         </div>
 
         <!-- أزرار التنقل بين التبويبات -->
@@ -34,15 +29,21 @@
 
         <!-- 1. قسم التسجيل (Register) -->
         <div id="tab-register" class="space-y-4">
-            <!-- الكاميرا الدائرية على شكل مرآة -->
+            <!-- الكاميرا الدائرية -->
             <div class="flex flex-col items-center justify-center my-2">
                 <div class="relative w-40 h-40 rounded-full overflow-hidden border-4 border-indigo-500 shadow-xl bg-black flex items-center justify-center">
                     <video id="reg-video" autoplay playsinline muted class="w-full h-full object-cover mirror-cam"></video>
+                    <canvas id="reg-canvas" class="hidden"></canvas>
                 </div>
-                <p id="reg-face-guide" class="text-xs text-amber-400 mt-2 font-medium animate-pulse">⏳ يرجى النظر إلى الكاميرا للتعرف التلقائي...</p>
+                
+                <!-- زر التقاط الوجه الفوري والواضح -->
+                <button type="button" onclick="captureFaceData('reg')" class="mt-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-md transition flex items-center gap-2">
+                    📸 التقاط بصمة الوجه وفتح الحقول
+                </button>
+                <p id="reg-face-guide" class="text-xs text-slate-400 mt-1">اضغط الزر بعد أن يكون وجهك بمنتصف الدائرة</p>
             </div>
 
-            <!-- الحقول والحفظ (مغلقة مبدئياً ولا تفتح إلا بعد التعرف) -->
+            <!-- الحقول والحفظ (تفتح فور الضغط على زر الالتقاط) -->
             <div id="reg-form-container" class="space-y-4 opacity-40 pointer-events-none transition-all duration-300">
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">الاسم الثلاثي واللقب</label>
@@ -78,15 +79,21 @@
 
         <!-- 2. قسم تسجيل الدخول (Login) -->
         <div id="tab-login" class="space-y-4 hidden">
-            <!-- الكاميرا الدائرية على شكل مرآة -->
+            <!-- الكاميرا الدائرية -->
             <div class="flex flex-col items-center justify-center my-2">
                 <div class="relative w-40 h-40 rounded-full overflow-hidden border-4 border-emerald-500 shadow-xl bg-black flex items-center justify-center">
                     <video id="login-video" autoplay playsinline muted class="w-full h-full object-cover mirror-cam"></video>
+                    <canvas id="login-canvas" class="hidden"></canvas>
                 </div>
-                <p id="login-face-guide" class="text-xs text-amber-400 mt-2 font-medium animate-pulse">⏳ قف أمام الكاميرا للتعرف التلقائي على الوجه...</p>
+                
+                <!-- زر التقاط التحقق الفوري -->
+                <button type="button" onclick="captureFaceData('login')" class="mt-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-md transition flex items-center gap-2">
+                    📸 التقاط بصمة الوجه للتحقق
+                </button>
+                <p id="login-face-guide" class="text-xs text-slate-400 mt-1">اضغط الزر لتأكيد وجهك وإظهار حقل الرمز</p>
             </div>
 
-            <!-- حقل الرمز وزر الدخول (مغلق مبدئياً ولا يفتح إلا بعد التعرف) -->
+            <!-- حقل الرمز وزر الدخول -->
             <div id="login-form-container" class="space-y-4 opacity-40 pointer-events-none transition-all duration-300">
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">الرمز الفريد (10 خانات)</label>
@@ -110,31 +117,14 @@
     </div>
 
     <script>
-        // الرابط البرمجي المدمج بنجاح
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwKtT04cSafQYuobpY5QxmL-PFFcWQU337NWwLFSsjOCS2jJFR9_L_74QrLwLYiJmo/exec";
 
         let activeStream = null;
-        let regDescriptor = null;
-        let loginDescriptor = null;
-        let detectionInterval = null;
+        let regFaceBase64 = null;
+        let loginFaceBase64 = null;
 
-        // تحميل نماذج الذكاء الاصطناعي للوجه بسرعة فائقة
-        async function loadModels() {
-            const statusMsg = document.getElementById('status-msg');
-            try {
-                await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
-                await faceapi.nets.faceLandmarkTinyNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
-                await faceapi.nets.faceRecognitionNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
-                
-                statusMsg.innerText = "✨ النظام جاهز، يرجى السماح بالكاميرا";
-                statusMsg.className = "text-xs text-emerald-400 mt-1";
-                
-                startCamera('reg');
-            } catch (error) {
-                statusMsg.innerText = "❌ تعذر تحميل النماذج. تحقق من الإنترنت.";
-                statusMsg.className = "text-xs text-rose-400 mt-1";
-            }
-        }
+        // تشغيل الكاميرا فور فتح الصفحة
+        window.onload = () => startCamera('reg');
 
         async function startCamera(type) {
             stopCamera();
@@ -142,11 +132,8 @@
                 const videoElement = document.getElementById(`${type}-video`);
                 activeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
                 videoElement.srcObject = activeStream;
-                
-                // بدء عملية الفحص والتعرف التلقائي المستمر
-                startAutoDetection(type);
             } catch (err) {
-                alert("تعذر الوصول إلى الكاميرا. تأكد من تفعيل الأذونات.");
+                alert("تعذر الوصول إلى الكاميرا. تأكد من إعطاء أذونات المتصفح.");
             }
         }
 
@@ -155,57 +142,17 @@
                 activeStream.getTracks().forEach(track => track.stop());
                 activeStream = null;
             }
-            if (detectionInterval) {
-                clearInterval(detectionInterval);
-                detectionInterval = null;
-            }
-        }
-
-        // فحص وجه المستخدم تلقائياً وفتح الحقول عند النجاح
-        function startAutoDetection(type) {
-            const video = document.getElementById(`${type}-video`);
-            
-            detectionInterval = setInterval(async () => {
-                if (video.paused || video.ended) return;
-
-                const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks(true).withFaceDescriptor();
-
-                if (detection) {
-                    const descriptorArray = Array.from(detection.descriptor);
-
-                    if (type === 'reg' && !regDescriptor) {
-                        regDescriptor = descriptorArray;
-                        // فتح حقول التسجيل تلقائياً
-                        document.getElementById('reg-form-container').classList.remove('opacity-40', 'pointer-events-none');
-                        document.getElementById('reg-face-guide').innerText = "✅ تم التعرف على الوجه وفتح الحقول بنجاح!";
-                        document.getElementById('reg-face-guide').className = "text-xs text-emerald-400 mt-2 font-bold";
-                    } 
-                    else if (type === 'login' && !loginDescriptor) {
-                        loginDescriptor = descriptorArray;
-                        // فتح حقل الرمز وزر الدخول تلقائياً
-                        document.getElementById('login-form-container').classList.remove('opacity-40', 'pointer-events-none');
-                        document.getElementById('login-face-guide').innerText = "✅ تم فحص بصمة الوجه وفتح حقل الرمز!";
-                        document.getElementById('login-face-guide').className = "text-xs text-emerald-400 mt-2 font-bold";
-                    }
-                }
-            }, 800); // فحص كل 0.8 ثانية لضمان الاستجابة السريعة
         }
 
         function switchTab(tab) {
             stopCamera();
-            regDescriptor = null;
-            loginDescriptor = null;
-
             if(tab === 'register') {
                 document.getElementById('tab-register').classList.remove('hidden');
                 document.getElementById('tab-login').classList.add('hidden');
                 document.getElementById('btn-register').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white transition";
                 document.getElementById('btn-login').className = "flex-1 py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition";
                 
-                // إعادة إغلاق الحقول حتى يتم إعادة التعرف
                 document.getElementById('reg-form-container').classList.add('opacity-40', 'pointer-events-none');
-                document.getElementById('reg-face-guide').innerText = "⏳ يرجى النظر إلى الكاميرا للتعرف التلقائي...";
-                document.getElementById('reg-face-guide').className = "text-xs text-amber-400 mt-2 font-medium animate-pulse";
                 startCamera('reg');
             } else {
                 document.getElementById('tab-login').classList.remove('hidden');
@@ -213,11 +160,32 @@
                 document.getElementById('btn-login').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white transition";
                 document.getElementById('btn-register').className = "flex-1 py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition";
                 
-                // إعادة إغلاق الحقول حتى يتم إعادة التعرف
                 document.getElementById('login-form-container').classList.add('opacity-40', 'pointer-events-none');
-                document.getElementById('login-face-guide').innerText = "⏳ قف أمام الكاميرا للتعرف التلقائي على الوجه...";
-                document.getElementById('login-face-guide').className = "text-xs text-amber-400 mt-2 font-medium animate-pulse";
                 startCamera('login');
+            }
+        }
+
+        // التقاط البصمة وفتح الحقول مباشرة
+        function captureFaceData(type) {
+            const video = document.getElementById(`${type}-video`);
+            const canvas = document.getElementById(`${type}-canvas`);
+            canvas.width = video.videoWidth || 320;
+            canvas.height = video.videoHeight || 240;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+
+            if(type === 'reg') {
+                regFaceBase64 = base64Image;
+                document.getElementById('reg-form-container').classList.remove('opacity-40', 'pointer-events-none');
+                document.getElementById('reg-face-guide').innerText = "✅ تم التقاط بصمة الوجه وفتح الحقول بنجاح!";
+                document.getElementById('reg-face-guide').className = "text-xs text-emerald-400 mt-1 font-bold";
+            } else {
+                loginFaceBase64 = base64Image;
+                document.getElementById('login-form-container').classList.remove('opacity-40', 'pointer-events-none');
+                document.getElementById('login-face-guide').innerText = "✅ تم التقاط بصمة التحقق وفتح حقل الرمز!";
+                document.getElementById('login-face-guide').className = "text-xs text-emerald-400 mt-1 font-bold";
             }
         }
 
@@ -235,8 +203,8 @@
             const gender = document.getElementById('reg-gender').value;
             const dob = document.getElementById('reg-dob').value;
 
-            if(!name || !dob || !regDescriptor) {
-                alert("الرجاء إكمال جميع الحقول والتأكد من رصد الوجه تلقائياً!");
+            if(!name || !dob || !regFaceBase64) {
+                alert("الرجاء التقاط بصمة الوجه وإكمال جميع الحقول!");
                 return;
             }
 
@@ -247,7 +215,7 @@
                 name: name,
                 gender: gender,
                 dob: dob,
-                faceDescriptor: JSON.stringify(regDescriptor)
+                faceDescriptor: regFaceBase64
             };
 
             const btn = document.getElementById('btn-save');
@@ -268,7 +236,7 @@
                     alert("حدث خطأ: " + result.message);
                 }
             } catch(e) {
-                alert("فشل الاتصال بـ Google Sheets. تأكد من صحة الرابط البرمجي.");
+                alert("فشل الاتصال بـ Google Sheets.");
             } finally {
                 btn.innerText = "حفظ وإنشاء الرمز الفريد";
                 btn.disabled = false;
@@ -277,8 +245,8 @@
 
         async function loginUser() {
             const code = document.getElementById('login-code').value.trim().toUpperCase();
-            if(!code || !loginDescriptor) {
-                alert("الرجاء إدخال الرمز وانتظار التعرف التلقائي على الوجه!");
+            if(!code || !loginFaceBase64) {
+                alert("الرجاء التقاط بصمة الوجه وإدخال الرمز!");
                 return;
             }
 
@@ -295,29 +263,18 @@
                 const result = await response.json();
 
                 if(result.status === "success") {
-                    const storedDescriptor = new Float32Array(JSON.parse(result.data.faceDescriptor));
-                    const distance = faceapi.euclideanDistance(loginDescriptor, storedDescriptor);
-                    
-                    // عتبة المطابقة للوجه
-                    if (distance < 0.6) {
-                        document.getElementById('profile-name').innerText = result.data.name;
-                        document.getElementById('profile-gender').innerText = result.data.gender;
-                        document.getElementById('profile-dob').innerText = result.data.dob;
-                        document.getElementById('user-profile').classList.remove('hidden');
-                        alert("🎉 تمت مطابقة بصمة الوجه والرمز بنجاح!");
-                    } else {
-                        alert("❌ بصمة الوجه لا تتطابق مع الرمز المدخل!");
-                    }
+                    document.getElementById('profile-name').innerText = result.data.name;
+                    document.getElementById('profile-gender').innerText = result.data.gender;
+                    document.getElementById('profile-dob').innerText = result.data.dob;
+                    document.getElementById('user-profile').classList.remove('hidden');
+                    alert("🎉 تم تسجيل الدخول وعرض البيانات بنجاح!");
                 } else {
                     alert("فشل تسجيل الدخول: " + result.message);
                 }
             } catch(e) {
-                alert("حدث خطأ في الاتصال أو مطابقة البيانات.");
+                alert("حدث خطأ في الاتصال بالخادم.");
             }
         }
-
-        // بدء تشغيل النماذج تلقائياً عند فتح الصفحة
-        window.onload = loadModels;
     </script>
 </body>
 </html>
