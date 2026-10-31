@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام بصمة الوجه والبيانات الذكي</title>
+    <title>نظام بصمة الوجه الذكي</title>
     <!-- Tailwind CSS للتصميم المتجاوب -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- مكتبة Face-API.js للتعرف على بصمة الوجه -->
     <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
     <style>
         body { font-family: system-ui, -apple-system, sans-serif; }
+        /* انعكاس الكاميرا مثل المرآة تماماً */
+        .mirror-cam {
+            transform: scaleX(-1);
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
@@ -18,8 +22,8 @@
         
         <!-- عنوان التطبيق -->
         <div class="text-center mb-6">
-            <h1 class="text-2xl font-bold text-indigo-400">بصمة الوجه الرقمية</h1>
-            <p id="status-msg" class="text-xs text-amber-400 mt-1">جاري تحميل نماذج الذكاء الاصطناعي للوجه...</p>
+            <h1 class="text-2xl font-bold text-indigo-400">بصمة الوجه الذكية</h1>
+            <p id="status-msg" class="text-xs text-amber-400 mt-1">جاري تحميل نظام الذكاء الاصطناعي...</p>
         </div>
 
         <!-- أزرار التنقل بين التبويبات -->
@@ -30,39 +34,39 @@
 
         <!-- 1. قسم التسجيل (Register) -->
         <div id="tab-register" class="space-y-4">
-            <!-- الكاميرا -->
-            <div class="relative rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center border border-slate-700">
-                <video id="reg-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
-            </div>
-            
-            <button type="button" onclick="captureFaceDescriptor('reg')" id="btn-reg-face" disabled class="w-full bg-slate-700 opacity-50 text-slate-200 py-2 rounded-xl text-sm font-medium transition flex items-center justify-center gap-2">
-                👤 استخراج بصمة الوجه
-            </button>
-            <p id="reg-face-status" class="text-xs text-center text-slate-400 hidden">✅ تم استخراج بصمة الوجه بنجاح</p>
-
-            <!-- الحقول -->
-            <div>
-                <label class="block text-xs text-slate-400 mb-1">الاسم الثلاثي واللقب</label>
-                <input type="text" id="reg-name" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" placeholder="مثال: أحمد محمد علي">
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">الجنس</label>
-                    <select id="reg-gender" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
-                        <option value="ذكر">ذكر</option>
-                        <option value="أنثى">أنثى</option>
-                    </select>
+            <!-- الكاميرا الدائرية على شكل مرآة -->
+            <div class="flex flex-col items-center justify-center my-2">
+                <div class="relative w-40 h-40 rounded-full overflow-hidden border-4 border-indigo-500 shadow-xl bg-black flex items-center justify-center">
+                    <video id="reg-video" autoplay playsinline muted class="w-full h-full object-cover mirror-cam"></video>
                 </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">تاريخ الميلاد</label>
-                    <input type="date" id="reg-dob" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
-                </div>
+                <p id="reg-face-guide" class="text-xs text-amber-400 mt-2 font-medium animate-pulse">⏳ يرجى النظر إلى الكاميرا للتعرف التلقائي...</p>
             </div>
 
-            <button onclick="registerUser()" id="btn-save" disabled class="w-full bg-slate-600 opacity-50 text-white font-semibold py-3 rounded-xl shadow-lg transition mt-2">
-                حفظ وإنشاء الرمز الفريد
-            </button>
+            <!-- الحقول والحفظ (مغلقة مبدئياً ولا تفتح إلا بعد التعرف) -->
+            <div id="reg-form-container" class="space-y-4 opacity-40 pointer-events-none transition-all duration-300">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">الاسم الثلاثي واللقب</label>
+                    <input type="text" id="reg-name" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" placeholder="مثال: أحمد محمد علي">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">الجنس</label>
+                        <select id="reg-gender" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                            <option value="ذكر">ذكر</option>
+                            <option value="أنثى">أنثى</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">تاريخ الميلاد</label>
+                        <input type="date" id="reg-dob" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <button onclick="registerUser()" id="btn-save" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl shadow-lg transition mt-2">
+                    حفظ وإنشاء الرمز الفريد
+                </button>
+            </div>
 
             <!-- نتيجة الرمز بعد التسجيل -->
             <div id="result-box" class="hidden mt-4 p-4 bg-slate-900 border border-emerald-500/50 rounded-xl text-center">
@@ -74,24 +78,25 @@
 
         <!-- 2. قسم تسجيل الدخول (Login) -->
         <div id="tab-login" class="space-y-4 hidden">
-            <!-- الكاميرا -->
-            <div class="relative rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center border border-slate-700">
-                <video id="login-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
-            </div>
-            
-            <button type="button" onclick="captureFaceDescriptor('login')" id="btn-login-face" disabled class="w-full bg-slate-700 opacity-50 text-slate-200 py-2 rounded-xl text-sm font-medium transition flex items-center justify-center gap-2">
-                👤 مسح بصمة الوجه للتحقق
-            </button>
-            <p id="login-face-status" class="text-xs text-center text-slate-400 hidden">✅ تم فحص بصمة الوجه بنجاح</p>
-
-            <div>
-                <label class="block text-xs text-slate-400 mb-1">الرمز الفريد (10 خانات)</label>
-                <input type="text" id="login-code" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm uppercase font-mono tracking-wider focus:outline-none focus:border-indigo-500" placeholder="أدخل الرمز الخاص بك">
+            <!-- الكاميرا الدائرية على شكل مرآة -->
+            <div class="flex flex-col items-center justify-center my-2">
+                <div class="relative w-40 h-40 rounded-full overflow-hidden border-4 border-emerald-500 shadow-xl bg-black flex items-center justify-center">
+                    <video id="login-video" autoplay playsinline muted class="w-full h-full object-cover mirror-cam"></video>
+                </div>
+                <p id="login-face-guide" class="text-xs text-amber-400 mt-2 font-medium animate-pulse">⏳ قف أمام الكاميرا للتعرف التلقائي على الوجه...</p>
             </div>
 
-            <button onclick="loginUser()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl shadow-lg transition mt-2">
-                تسجيل الدخول وعرض البيانات
-            </button>
+            <!-- حقل الرمز وزر الدخول (مغلق مبدئياً ولا يفتح إلا بعد التعرف) -->
+            <div id="login-form-container" class="space-y-4 opacity-40 pointer-events-none transition-all duration-300">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">الرمز الفريد (10 خانات)</label>
+                    <input type="text" id="login-code" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm uppercase font-mono tracking-wider focus:outline-none focus:border-indigo-500" placeholder="أدخل الرمز الخاص بك">
+                </div>
+
+                <button onclick="loginUser()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl shadow-lg transition mt-2">
+                    تسجيل الدخول وعرض البيانات
+                </button>
+            </div>
 
             <!-- عرض البيانات عند نجاح الدخول -->
             <div id="user-profile" class="hidden mt-4 p-4 bg-slate-900 border border-indigo-500/50 rounded-xl space-y-2">
@@ -105,37 +110,28 @@
     </div>
 
     <script>
-        // ضع هنا رابط Web App الخاص بـ Google Apps Script
+        // الرابط البرمجي المدمج بنجاح
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwKtT04cSafQYuobpY5QxmL-PFFcWQU337NWwLFSsjOCS2jJFR9_L_74QrLwLYiJmo/exec";
 
         let activeStream = null;
         let regDescriptor = null;
         let loginDescriptor = null;
+        let detectionInterval = null;
 
-        // تحميل نماذج الذكاء الاصطناعي للوجه من السيرفر العام
+        // تحميل نماذج الذكاء الاصطناعي للوجه بسرعة فائقة
         async function loadModels() {
             const statusMsg = document.getElementById('status-msg');
             try {
-                // استخدام نماذج خفيفة ومناسبة للهواتف
                 await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
                 await faceapi.nets.faceLandmarkTinyNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
                 await faceapi.nets.faceRecognitionNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
                 
-                statusMsg.innerText = "✨ النظام جاهز، يرجى السماح باستخدام الكاميرا";
+                statusMsg.innerText = "✨ النظام جاهز، يرجى السماح بالكاميرا";
                 statusMsg.className = "text-xs text-emerald-400 mt-1";
                 
-                // تفعيل أزرار الكاميرا
-                document.getElementById('btn-reg-face').disabled = false;
-                document.getElementById('btn-reg-face').classList.remove('opacity-50', 'bg-slate-700');
-                document.getElementById('btn-reg-face').classList.add('bg-indigo-600', 'hover:bg-indigo-500', 'text-white');
-
-                document.getElementById('btn-login-face').disabled = false;
-                document.getElementById('btn-login-face').classList.remove('opacity-50', 'bg-slate-700');
-                document.getElementById('btn-login-face').classList.add('bg-indigo-600', 'hover:bg-indigo-500', 'text-white');
-
                 startCamera('reg');
             } catch (error) {
-                statusMsg.innerText = "❌ تعذر تحميل نماذج الذكاء الاصطناعي. تحقق من الاتصال بالإنترنت.";
+                statusMsg.innerText = "❌ تعذر تحميل النماذج. تحقق من الإنترنت.";
                 statusMsg.className = "text-xs text-rose-400 mt-1";
             }
         }
@@ -146,6 +142,9 @@
                 const videoElement = document.getElementById(`${type}-video`);
                 activeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
                 videoElement.srcObject = activeStream;
+                
+                // بدء عملية الفحص والتعرف التلقائي المستمر
+                startAutoDetection(type);
             } catch (err) {
                 alert("تعذر الوصول إلى الكاميرا. تأكد من تفعيل الأذونات.");
             }
@@ -156,50 +155,69 @@
                 activeStream.getTracks().forEach(track => track.stop());
                 activeStream = null;
             }
+            if (detectionInterval) {
+                clearInterval(detectionInterval);
+                detectionInterval = null;
+            }
+        }
+
+        // فحص وجه المستخدم تلقائياً وفتح الحقول عند النجاح
+        function startAutoDetection(type) {
+            const video = document.getElementById(`${type}-video`);
+            
+            detectionInterval = setInterval(async () => {
+                if (video.paused || video.ended) return;
+
+                const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks(true).withFaceDescriptor();
+
+                if (detection) {
+                    const descriptorArray = Array.from(detection.descriptor);
+
+                    if (type === 'reg' && !regDescriptor) {
+                        regDescriptor = descriptorArray;
+                        // فتح حقول التسجيل تلقائياً
+                        document.getElementById('reg-form-container').classList.remove('opacity-40', 'pointer-events-none');
+                        document.getElementById('reg-face-guide').innerText = "✅ تم التعرف على الوجه وفتح الحقول بنجاح!";
+                        document.getElementById('reg-face-guide').className = "text-xs text-emerald-400 mt-2 font-bold";
+                    } 
+                    else if (type === 'login' && !loginDescriptor) {
+                        loginDescriptor = descriptorArray;
+                        // فتح حقل الرمز وزر الدخول تلقائياً
+                        document.getElementById('login-form-container').classList.remove('opacity-40', 'pointer-events-none');
+                        document.getElementById('login-face-guide').innerText = "✅ تم فحص بصمة الوجه وفتح حقل الرمز!";
+                        document.getElementById('login-face-guide').className = "text-xs text-emerald-400 mt-2 font-bold";
+                    }
+                }
+            }, 800); // فحص كل 0.8 ثانية لضمان الاستجابة السريعة
         }
 
         function switchTab(tab) {
             stopCamera();
+            regDescriptor = null;
+            loginDescriptor = null;
+
             if(tab === 'register') {
                 document.getElementById('tab-register').classList.remove('hidden');
                 document.getElementById('tab-login').classList.add('hidden');
                 document.getElementById('btn-register').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white transition";
                 document.getElementById('btn-login').className = "flex-1 py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition";
+                
+                // إعادة إغلاق الحقول حتى يتم إعادة التعرف
+                document.getElementById('reg-form-container').classList.add('opacity-40', 'pointer-events-none');
+                document.getElementById('reg-face-guide').innerText = "⏳ يرجى النظر إلى الكاميرا للتعرف التلقائي...";
+                document.getElementById('reg-face-guide').className = "text-xs text-amber-400 mt-2 font-medium animate-pulse";
                 startCamera('reg');
             } else {
                 document.getElementById('tab-login').classList.remove('hidden');
                 document.getElementById('tab-register').classList.add('hidden');
                 document.getElementById('btn-login').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white transition";
                 document.getElementById('btn-register').className = "flex-1 py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition";
+                
+                // إعادة إغلاق الحقول حتى يتم إعادة التعرف
+                document.getElementById('login-form-container').classList.add('opacity-40', 'pointer-events-none');
+                document.getElementById('login-face-guide').innerText = "⏳ قف أمام الكاميرا للتعرف التلقائي على الوجه...";
+                document.getElementById('login-face-guide').className = "text-xs text-amber-400 mt-2 font-medium animate-pulse";
                 startCamera('login');
-            }
-        }
-
-        // استخراج بصمة الوجه الرقمية (Array of 128 numbers) عبر Face-API
-        async function captureFaceDescriptor(type) {
-            const video = document.getElementById(`${type}-video`);
-            const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks(true).withFaceDescriptor();
-
-            if (!detection) {
-                alert("⚠️ لم يتم رصد وجه بوضوح! تأكد من إضاءة وجهك ووجه الكاميرا مباشرة.");
-                return;
-            }
-
-            const descriptorArray = Array.from(detection.descriptor); // بصمة الوجه الرقمية الدقيقة
-
-            if(type === 'reg') {
-                regDescriptor = descriptorArray;
-                document.getElementById('reg-face-status').classList.remove('hidden');
-                document.getElementById('btn-reg-face').innerText = "✅ تم استخراج البصمة بنجاح";
-                // تفعيل زر الحفظ النهائي
-                const saveBtn = document.getElementById('btn-save');
-                saveBtn.disabled = false;
-                saveBtn.classList.remove('opacity-50', 'bg-slate-600');
-                saveBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
-            } else {
-                loginDescriptor = descriptorArray;
-                document.getElementById('login-face-status').classList.remove('hidden');
-                document.getElementById('btn-login-face').innerText = "✅ تم فحص بصمة الوجه";
             }
         }
 
@@ -218,7 +236,7 @@
             const dob = document.getElementById('reg-dob').value;
 
             if(!name || !dob || !regDescriptor) {
-                alert("الرجاء استخراج بصمة الوجه وإكمال جميع الحقول!");
+                alert("الرجاء إكمال جميع الحقول والتأكد من رصد الوجه تلقائياً!");
                 return;
             }
 
@@ -229,7 +247,7 @@
                 name: name,
                 gender: gender,
                 dob: dob,
-                faceDescriptor: JSON.stringify(regDescriptor) // تخزين بصمة الوجه كنص في الشيت
+                faceDescriptor: JSON.stringify(regDescriptor)
             };
 
             const btn = document.getElementById('btn-save');
@@ -260,7 +278,7 @@
         async function loginUser() {
             const code = document.getElementById('login-code').value.trim().toUpperCase();
             if(!code || !loginDescriptor) {
-                alert("الرجاء إدخال الرمز ومسح بصمة الوجه للتحقق!");
+                alert("الرجاء إدخال الرمز وانتظار التعرف التلقائي على الوجه!");
                 return;
             }
 
@@ -277,11 +295,10 @@
                 const result = await response.json();
 
                 if(result.status === "success") {
-                    // مقارنة بصمة الوجه الحية مع البصمة المخزنة في الشيت
                     const storedDescriptor = new Float32Array(JSON.parse(result.data.faceDescriptor));
                     const distance = faceapi.euclideanDistance(loginDescriptor, storedDescriptor);
                     
-                    // عتبة المطابقة (أقل من 0.6 يعني نفس الشخص)
+                    // عتبة المطابقة للوجه
                     if (distance < 0.6) {
                         document.getElementById('profile-name').innerText = result.data.name;
                         document.getElementById('profile-gender').innerText = result.data.gender;
@@ -299,7 +316,7 @@
             }
         }
 
-        // بدء تحميل النماذج عند فتح الصفحة
+        // بدء تشغيل النماذج تلقائياً عند فتح الصفحة
         window.onload = loadModels;
     </script>
 </body>
