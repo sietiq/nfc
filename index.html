@@ -2,324 +2,134 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>استمارة تسجيل المريض الراقد</title>
-    <!-- خط Cairo الجميل والمتناسق -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قارئ NFC عبر الويب</title>
+    <!-- استيراد خط وتنسيقات Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            box-sizing: border-box;
-            font-family: 'Cairo', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
         body {
-            background-color: #f8fafc;
-            margin: 0;
-            padding: 12px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .container {
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            width: 100%;
-            max-width: 600px;
-        }
-        h2 {
-            text-align: center;
-            color: #1e3a8a;
-            margin-bottom: 20px;
-            font-size: 22px;
-        }
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-        .form-group {
-            margin-bottom: 12px;
-        }
-        .form-group.full-width {
-            grid-column: span 2;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #334155;
-            font-size: 13px;
-        }
-        input, select, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            font-size: 15px; /* حجم 15px يمنع التكبير التلقائي المزعج في آيفون وسامسونج */
-            outline: none;
-            background-color: #fff;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        input:focus, select:focus, textarea:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-        }
-        
-        /* تصميم زر الإرسال */
-        button {
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            padding: 14px;
-            width: 100%;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            margin-top: 10px;
-        }
-        button:hover {
-            background-color: #1d4ed8;
-        }
-        button:disabled {
-            background-color: #94a3b8;
-            cursor: not-allowed;
-        }
-
-        /* حاوية شريط النسبة المئوية */
-        .progress-container {
-            margin-top: 15px;
-            display: none;
-        }
-        .progress-bar-bg {
-            width: 100%;
-            background-color: #e2e8f0;
-            border-radius: 8px;
-            overflow: hidden;
-            height: 12px;
-        }
-        .progress-bar-fill {
-            height: 100%;
-            width: 0%;
-            background-color: #2563eb;
-            transition: width 0.1s linear;
-            border-radius: 8px;
-        }
-        .progress-text {
-            text-align: center;
-            font-size: 13px;
-            font-weight: 600;
-            color: #475569;
-            margin-top: 5px;
-        }
-
-        /* رسالة النجاح أو الخطأ */
-        .alert {
-            margin-top: 15px;
-            padding: 12px;
-            border-radius: 10px;
-            text-align: center;
-            font-weight: 600;
-            display: none;
-            font-size: 14px;
-        }
-        .alert.success {
-            background-color: #d1fae5;
-            color: #065f46;
-            display: block;
-        }
-        .alert.error {
-            background-color: #fee2e2;
-            color: #991b1b;
-            display: block;
-        }
-
-        /* ميديا كويري لتتلاءم تماماً مع الهواتف الصغيرة */
-        @media (max-width: 576px) {
-            body {
-                padding: 8px;
-            }
-            .container {
-                padding: 15px;
-                border-radius: 12px;
-            }
-            .form-grid {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            .form-group.full-width {
-                grid-column: span 1;
-            }
-            h2 {
-                font-size: 20px;
-            }
+            font-family: 'Tajawal', sans-serif;
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col items-center justify-center p-4">
 
-<div class="container">
-    <h2>استمارة المريض الراقد</h2>
-    <form id="patientForm">
-        <div class="form-grid">
-            <!-- اسم المريض -->
-            <div class="form-group">
-                <label for="patientName">اسم المريض:</label>
-                <input type="text" id="patientName" name="patientName" required placeholder="الاسم الثلاثي واللقب">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+        <!-- رأس الصفحة -->
+        <div class="text-center mb-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-full mb-3 shadow-inner">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
             </div>
-
-            <!-- اسم الأم -->
-            <div class="form-group">
-                <label for="motherName">اسم الأم:</label>
-                <input type="text" id="motherName" name="motherName" required placeholder="اسم الأم الثلاثي">
-            </div>
-
-            <!-- الجنس -->
-            <div class="form-group">
-                <label for="gender">الجنس:</label>
-                <select id="gender" name="gender" required>
-                    <option value="">اختر الجنس</option>
-                    <option value="ذكر">ذكر</option>
-                    <option value="أنثى">أنثى</option>
-                </select>
-            </div>
-
-            <!-- العمر -->
-            <div class="form-group">
-                <label for="age">العمر:</label>
-                <input type="number" id="age" name="age" required min="0" max="120" placeholder="العمر بالسنة">
-            </div>
-
-            <!-- السكن -->
-            <div class="form-group">
-                <label for="address">السكن:</label>
-                <input type="text" id="address" name="address" required placeholder="المنطقة / المحافظة">
-            </div>
-
-            <!-- رقم الطبلة -->
-            <div class="form-group">
-                <label for="fileNumber">رقم الطبلة:</label>
-                <input type="text" id="fileNumber" name="fileNumber" required placeholder="رقم الملف الطبي">
-            </div>
-
-            <!-- رقم الهاتف -->
-            <div class="form-group">
-                <label for="phone">رقم الهاتف:</label>
-                <input type="tel" id="phone" name="phone" placeholder="07xxxxxxxx">
-            </div>
-
-            <!-- الأخصائي -->
-            <div class="form-group">
-                <label for="specialist">الأخصائي المشرف:</label>
-                <input type="text" id="specialist" name="specialist" required placeholder="اسم الطبيب الأخصائي">
-            </div>
-
-            <!-- تاريخ الدخول -->
-            <div class="form-group">
-                <label for="admissionDate">تاريخ الدخول:</label>
-                <input type="date" id="admissionDate" name="admissionDate" required>
-            </div>
-
-            <!-- التشخيص -->
-            <div class="form-group full-width">
-                <label for="diagnosis">التشخيص:</label>
-                <textarea id="diagnosis" name="diagnosis" rows="3" required placeholder="التشخيص السريري المبدئي..."></textarea>
-            </div>
+            <h1 class="text-2xl font-bold text-gray-900">قارئ بطاقات NFC</h1>
+            <p class="text-sm text-gray-500 mt-1">امسح بطاقة أو ملصق NFC لعرض البيانات</p>
         </div>
 
-        <button type="submit" id="submitBtn">حفظ وإرسال البيانات</button>
-        
-        <!-- شريط النسبة المئوية -->
-        <div id="progressContainer" class="progress-container">
-            <div class="progress-bar-bg">
-                <div id="progressBarFill" class="progress-bar-fill"></div>
-            </div>
-            <div id="progressText" class="progress-text">جاري الإرسال: 0%</div>
+        <!-- حالة الدعم والاتصال -->
+        <div id="status" class="mb-6 p-4 rounded-xl bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm flex items-center gap-3">
+            <span class="w-3 h-3 bg-yellow-500 rounded-full inline-block flex-shrink-0"></span>
+            <span id="status-text">جاري التحقق من دعم المتصفح لـ NFC...</span>
         </div>
 
-        <div id="responseMessage" class="alert"></div>
-    </form>
-</div>
+        <!-- أزرار التحكم -->
+        <div class="space-y-3 mb-6">
+            <button id="scan-btn" onclick="startNfcScan()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition duration-200 shadow-md flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                بدء المسح (Scan)
+            </button>
+            <button id="clear-btn" onclick="clearLog()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-xl transition duration-200 text-sm">
+                مسح السجل
+            </button>
+        </div>
 
-<script>
-    // ⚠️ ضع رابط الـ Web App الخاص بـ Google Apps Script هنا حصراً بين علامتي التنصيص
-    const SCRIPT_URL = 'ضع_رابط_الـ_Web_App_هنا';
+        <!-- منطقة عرض النتائج -->
+        <div>
+            <h2 class="text-sm font-semibold text-gray-700 mb-2">البيانات المستلمة:</h2>
+            <div id="output" class="bg-gray-900 text-green-400 font-mono text-xs p-4 rounded-xl h-48 overflow-y-auto border border-gray-800 space-y-2">
+                <div class="text-gray-500">جاهز للمسح...</div>
+            </div>
+        </div>
+    </div>
 
-    // تعيين تاريخ اليوم تلقائياً لحقل تاريخ الدخول
-    document.getElementById('admissionDate').valueAsDate = new Date();
+    <script>
+        const statusEl = document.getElementById('status');
+        const statusText = document.getElementById('status-text');
+        const outputEl = document.getElementById('output');
+        const scanBtn = document.getElementById('scan-btn');
 
-    const form = document.getElementById('patientForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const responseMessage = document.getElementById('responseMessage');
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBarFill = document.getElementById('progressBarFill');
-    const progressText = document.getElementById('progressText');
+        // التحقق من توفر ميزة Web NFC في المتصفح
+        if ('NDEFReader' in window) {
+            statusEl.className = "mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-sm flex items-center gap-3";
+            statusText.innerHTML = "متصفحك يدعم تقنية NFC. انقر على زر ابدأ المسح.";
+        } else {
+            statusEl.className = "mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center gap-3";
+            statusText.innerHTML = "عذراً، متصفحك الحالي لا يدعم Web NFC (موصى باستخدام Google Chrome على Android).";
+            scanBtn.disabled = true;
+            scanBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
 
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // تعطيل الزر وإظهار شريط التقدم
-        submitBtn.disabled = true;
-        submitBtn.style.display = 'none';
-        progressContainer.style.display = 'block';
-        responseMessage.style.display = 'none';
-        
-        let progress = 0;
-        progressBarFill.style.width = '0%';
-        progressText.textContent = 'جاري الإرسال: 0%';
+        async function startNfcScan() {
+            try {
+                const ndef = new NDEFReader();
+                await ndef.scan();
+                
+                statusEl.className = "mb-6 p-4 rounded-xl bg-green-50 border border-green-200 text-green-800 text-sm flex items-center gap-3";
+                statusText.innerHTML = "تم تفعيل المسح بنجاح! قرب بطاقة NFC من جهازك الآن...";
+                appendLog("✨ تم تنشيط القارئ، بانتظار البطاقة...", "text-blue-400");
 
-        // محاكاة حركة نسبة التقدم بانتظام استجابة للاتصال
-        let interval = setInterval(() => {
-            if (progress < 90) {
-                progress += Math.floor(Math.random() * 15) + 5;
-                if (progress > 90) progress = 90;
-                progressBarFill.style.width = progress + '%';
-                progressText.textContent = `جاري الإرسال: ${progress}%`;
+                ndef.onreading = event => {
+                    const { serialNumber, message } = event;
+                    appendLog(`📌 رقم البطاقة التسلسلي (UID): ${serialNumber || 'غير متوفر'}`, "text-yellow-400");
+
+                    for (const record of message.records) {
+                        switch (record.recordType) {
+                            case "text":
+                                const textDecoder = new TextDecoder(record.encoding);
+                                const text = textDecoder.decode(record.data);
+                                appendLog(`📄 نوع السجل: نص (Text)\nمحتوى النص: ${text}`, "text-green-300");
+                                break;
+                            case "url":
+                                const urlDecoder = new TextDecoder();
+                                const url = urlDecoder.decode(record.data);
+                                appendLog(`🌐 نوع السجل: رابط (URL)\nالرابط: ${url}`, "text-blue-300");
+                                break;
+                            default:
+                                appendLog(`📦 سجل من نوع غير معروف: ${record.recordType}`, "text-gray-300");
+                        }
+                    }
+                };
+
+                ndef.onreadingerror = () => {
+                    appendLog("⚠️ حدث خطأ أثناء محاولة قراءة البطاقة، جرب مرة أخرى.", "text-red-400");
+                };
+
+            } catch (error) {
+                console.error(error);
+                statusEl.className = "mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center gap-3";
+                statusText.innerHTML = `خطأ: ${error.message}`;
+                appendLog(`❌ خطأ في التشغيل: ${error.message}`, "text-red-400");
             }
-        }, 120);
+        }
 
-        const formData = new FormData(form);
-        const data = {};
-        formData.forEach((value, key) => (data[key] = value));
+        function appendLog(message, colorClass = "text-green-400") {
+            // إزالة رسالة "جاهز للمسح" عند ورود أول سجل
+            if (outputEl.querySelector('.text-gray-500')) {
+                outputEl.innerHTML = '';
+            }
+            const div = document.createElement('div');
+            div.className = `${colorClass} whitespace-pre-wrap border-b border-gray-800 pb-2 mb-2`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            outputEl.appendChild(div);
+            outputEl.scrollTop = outputEl.scrollHeight;
+        }
 
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        })
-        .then(() => {
-            clearInterval(interval);
-            progressBarFill.style.width = '100%';
-            progressText.textContent = 'جاري الإرسال: 100%';
-            
-            setTimeout(() => {
-                progressContainer.style.display = 'none';
-                responseMessage.textContent = 'تم حفظ بيانات المريض بنجاح في النظام!';
-                responseMessage.className = 'alert success';
-                form.reset();
-                document.getElementById('admissionDate').valueAsDate = new Date();
-                submitBtn.disabled = false;
-                submitBtn.style.display = 'block';
-            }, 400);
-        })
-        .catch(error => {
-            clearInterval(interval);
-            console.error('Error!', error);
-            progressContainer.style.display = 'none';
-            responseMessage.textContent = 'حدث خطأ أثناء الحفظ، يرجى المحاولة مرة أخرى.';
-            responseMessage.className = 'alert error';
-            submitBtn.disabled = false;
-            submitBtn.style.display = 'block';
-        });
-    });
-</script>
-
+        function clearLog() {
+            outputEl.innerHTML = '<div class="text-gray-500">جاهز للمسح...</div>';
+        }
+    </script>
 </body>
 </html>
